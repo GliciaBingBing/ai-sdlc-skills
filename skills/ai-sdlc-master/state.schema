@@ -1,0 +1,46 @@
+# state.json 字段契约（AI SDLC Master 持久化项目记忆）
+
+`ai-sdlc-master` 把整条链路的三段进度写进 `<项目根>/.workbuddy/sdlc/state.json`。
+这是「多 Agent 整链能自动跑、也能隔天从断点续跑」的物理载体——与 真实交付项目里
+「有记忆所以自动续上」是同一机制，只是现在显式抽成可移植的工具。
+
+由 `scripts/sdlc_status.py` 读写，纯 JSON / 纯标准库，无第三方依赖。
+
+## 顶层结构
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `schema_version` | int | 契约版本，当前 `1` |
+| `project.name` | string | 项目人读名 |
+| `project.slug` | string | 目录 slug（prd-work/qa-work 用同一 slug） |
+| `project.root` | string | 项目根绝对路径 |
+| `phases` | object | 三段状态，见下 |
+| `current_phase` | string | 当前应执行的阶段：`prd` / `dev` / `qa` |
+| `updated_at` | string | 最后更新 ISO 时间（脚本自动写） |
+
+## phases 三段
+
+三段同构，逐段字段：
+
+| 字段 | 说明 |
+|------|------|
+| `status` | `pending` / `running` / `done` |
+| `gate` | `pending` / `confirmed`（该段产物是否通过确认闸门） |
+| `workdir` | 该段工作目录（prd/dev 用各自 skill 约定目录） |
+| `outputs` | 该段产出文件清单（master 在 handoff 后回填） |
+| `requirement` | （dev 段）开发需求来源，即 PRD 的 `04-prd.md` |
+| `reports` | （dev 段）4 份门禁报告路径 |
+| `inputs` | （qa 段）QA 输入目录清单（PRD + dev 实现说明 + 代码库） |
+
+## 状态机规则（由 sdlc_status.py set 强制执行）
+
+- 某段 `status=done` 且 `gate=confirmed` → `current_phase` 自动推进到下一阶段。
+- 某段 `status` 为 `running`/`pending` → `current_phase` 停留在该段（断点续跑点）。
+- **下游段永不早于上游段进入 `done`**：dev 未 `confirmed` 不进 QA，PRD 未 `confirmed` 不进 Dev。
+  这一约束由 master 编排器在派发前用 `sdlc_status.py show` 校验，不是靠自觉。
+
+## 续跑协议
+
+用户隔天回来：「继续 <项目名>」→ master 调 `sdlc_status.py show <根>` →
+读 `current_phase` 与该段 `gate` → 从断点继续。因为产物文件与 state 都落盘，
+无需重新 briefing，上下文由文件承载（反漂移铁律）。

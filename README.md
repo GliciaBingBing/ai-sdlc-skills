@@ -1,6 +1,7 @@
 # AI-Native SDLC · 受治理的 PRD → Dev → QA 流水线技能包
 
 > 一套**覆盖「需求 → 开发 → 测试」全链路的 AI 交付治理框架**——不是三个零散工具，而是共用同一套「文件化交接 + 确认闸门 + 真实工具链」的三段流水线。
+> 顶层还有一个 **`ai-sdlc-master` 多 Agent 总编排器**：一条指令把 PRD → Dev → QA 当一整条链自动跑，只在确认闸门点打扰你。
 > 它解决的核心问题：让 AI 从「说写完了」变成「真的写完了、且可验证、且可回退」。由**产品经理视角**设计。
 
 ![AI-Native SDLC 架构](assets/architecture.svg)
@@ -59,9 +60,38 @@ qa-work/ 用例  +  人/AI 分工表  +  05-results 执行结果
 你体感上"跑的是一条链、甚至不用每次重新交代就能接着跑"，靠的是两件事：
 
 1. **文件化交接**：阶段之间靠产物自动衔接，不用复制粘贴、不用重新 briefing；
-2. **项目级持久记忆**：三段的所有产物都落盘在项目工作区（`prd-work/` `qa-work/` `harness/`）**加上 WorkBuddy 的项目记忆**——所以在一个真实项目里，你今天跑完 PRD，明天回来 Agent 读文件 + 读项目记忆就能直接进开发、进测试；跨会话、跨阶段，链路不断。
+2. **项目级持久记忆**：三段的所有产物都落盘在项目工作区（`prd-work/` `qa-work/` `harness/`），还有一个显式的 `ai-sdlc-master` 项目记忆 `state.json`——所以在一个真实项目里，你今天跑完 PRD，明天回来说"继续"，编排器读文件 + 读 `state.json` 就能直接进开发、进测试；跨会话、跨阶段，链路不断。
 
 这正是它和「三个独立 prompt skill 拼在一起」最大的代差：**别人每次都要从头喂背景，你的是"记得住的项目"。** 你只需要在确认闸门点拍板，其余的衔接交给文件与记忆。
+
+---
+
+## 真正的多 Agent 模式（`ai-sdlc-master`）
+
+前面三段各自是编排器，但过去要靠你手动依次调用。现在 `ai-sdlc-master` 把它们升级成**一个层级多 Agent 系统**——这才是它"非常之牛"的地方：
+
+```
+你（一句话："跑 xxx 的完整交付"）
+  │  加载 ai-sdlc-master → 顶层编排器 agent
+  ▼
+┌─ PRD phase agent ──────────────┐
+│   加载 prd-master → 再派 5 个 step agent │   ← 上下文隔离，天然抗漂移
+├─ DEV phase agent ──────────────┤
+│   加载 dev-harness → 走 5 道门禁 G1~G5  │   ← 真实写代码 + 4 份报告
+├─ QA phase agent ───────────────┤
+│   加载 qa-master → 再派 5 个 step agent │   ← 含 Python 工具链
+└────────────────────────────────┘
+      每个 phase 之间靠产物自动 handoff，只在闸门点停
+```
+
+**为什么是"真多 Agent"而非"一个长 prompt"：**
+
+- **层级调度**：你 → phase agent → step agent，三层 agent 各管一摊。PRD/QA 的 phase agent 自己还会再派发 step agent，是真正的 agent 调 agent。
+- **上下文层层隔离**：每个 agent 启动时只读取上游产物文件，不继承任何聊天历史。对话再长，早期决策也不会被忘——这正是反漂移铁律的运行时保证。
+- **持久记忆跨会话**：编排器把三段进度写进 `<项目根>/.workbuddy/sdlc/state.json`（由 `sdlc_status.py` 读写，纯标准库、零依赖）。隔天回来说"继续"，从断点秒级恢复，不用重新交代。
+- **闸门只在真决策点停**：phase 之间靠产物自动流转；只有 phase 内部闸门（如 QA 的测试方案确认、DEV 的 G3 低置信上报）要求时才打断你。
+
+> 一句话：过去是「三个 skill 你手动串」，现在是「一个编排器把三个 skill 当一整条多 Agent 链路自动跑」。
 
 ---
 
@@ -94,10 +124,16 @@ qa-work/ 用例  +  人/AI 分工表  +  05-results 执行结果
 
 ### 前置
 1. 安装 [WorkBuddy](https://www.workbuddy.cn)。
-2. 把本仓库 `skills/` 下的 13 个 skill 复制到你的 WorkBuddy skills 目录。
+2. 把本仓库 `skills/` 下的 14 个 skill 复制到你的 WorkBuddy skills 目录。
 3. 把 `harness/` 复制到 `~/.workbuddy/harness/`（或某个项目的 `.workbuddy/harness/`）。
 
-### 跑起来（三段可串联成一条链）
+### 跑起来
+
+**方式 A · 一条指令跑完整链（推荐，多 Agent 模式）**
+- 对 AI 说"用 ai-sdlc-master 跑 <项目名> 的完整交付" → 顶层编排器自动串联 PRD → Dev → QA，阶段间自动 handoff，只在闸门点拍板。
+- 隔天回来说"继续 <项目名>" → 编排器读 `state.json` 从断点续跑，不用重新交代。
+
+**方式 B · 三段分开手动调**
 - 对 AI 说"帮我做个 PRD" → 走 `prd-master`，产出 `04-prd.md`
 - 说"用 harness 开发（基于这份 PRD）" → `dev-harness` 以 `04-prd.md` 为需求输入
 - 说"跑 QA" → `qa-master` 以 PRD + 代码产出为测试基线
@@ -127,6 +163,12 @@ ai-sdlc-skills/
 ├── assets/
 │   └── architecture.svg    # 架构图（本文档配图）
 ├── skills/
+│   ├── ai-sdlc-master/     # ★ 多 Agent 总编排器（串联整条链 + 持久记忆）
+│   │   ├── SKILL.md        #   顶层编排器指令
+│   │   ├── state.schema    #   state.json 字段契约
+│   │   ├── HANDOFF.md      #   阶段间 handoff 契约
+│   │   └── scripts/
+│   │       └── sdlc_status.py  # 项目记忆读写（纯标准库）
 │   ├── prd-master/         # PRD 编排器
 │   ├── prd-step1-grill/    # ① 需求拷问
 │   ├── prd-step2-stories/  # ② 用户故事
