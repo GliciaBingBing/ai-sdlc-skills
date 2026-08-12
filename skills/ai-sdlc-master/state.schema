@@ -1,7 +1,7 @@
 # state.json 字段契约（AI SDLC Master 持久化项目记忆）
 
 `ai-sdlc-master` 把整条链路的三段进度写进 `<项目根>/.workbuddy/sdlc/state.json`。
-这是「多 Agent 整链能自动跑、也能隔天从断点续跑」的物理载体——与 真实交付项目里
+这是「多 Agent 整链能自动跑、也能隔天从断点续跑」的物理载体——与你在真实项目里
 「有记忆所以自动续上」是同一机制，只是现在显式抽成可移植的工具。
 
 由 `scripts/sdlc_status.py` 读写，纯 JSON / 纯标准库，无第三方依赖。
