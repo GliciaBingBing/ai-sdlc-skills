@@ -16,9 +16,7 @@ AI 编程工具越来越强，但有三个通病：
 3. **无人验收就当完成**——Agent 说"写完了"，其实没跑测试、改了不相关的代码。
 
 我的解法不是写更长的 prompt，而是把"产品 → 开发 → 测试"拆成**三段受治理的流水线**，每段用
-**多 Agent 编排 + 确认闸门 + 文件化交接**串起来。这正好对应 2026 年成名的
-[Harness Engineering（受治理 AI 开发）](https://www.augmentcode.com/guides/harness-engineering-ai-coding-agents)
-学科——我是在 2026 年独立搭建的，与这套方法论同期、思路一致。
+**多 Agent 编排 + 确认闸门 + 文件化交接**串起来。
 
 ---
 
