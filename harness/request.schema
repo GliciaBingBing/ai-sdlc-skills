@@ -1,0 +1,36 @@
+# 产物契约字段定义（开发 AI 必须产出的报告）
+
+> 注意：需求（requirement）由用户**直接在对话或任意文件**中给出，AI 直接消费，
+> 不要求固定在某目录。下方 `requirement.md` 字段仅描述「一份规范需求长什么样」，
+> 供追溯与可选持久化使用，并非强制文件。
+
+## requirement.md（可选，用户给的需求长这样）
+- req_id:        REQ-xxx（稳定唯一，AI 现场补也行）
+- description:   文本（必填）
+- acceptance:    文本/清单（必填，验收要点）
+- module:        MOD-xxx（可选，对应 module-map；用于护栏2 范围）
+
+## self_check_report（护栏1 / 护栏5）
+- status:        pass / fail（必填）
+- build_result:  通过项（必填）
+- test_result:   通过项（必填）
+- failed:        失败项数组（status=fail 时必填）
+- code_clean:    bool（必填，护栏5）
+
+## diff_scope_report（护栏2）
+- changed_files:   路径数组（必填）
+- mapped_modules:  MOD-xxx 数组（必填）
+- out_of_scope:    越界文件数组（必填）
+- blocked:         bool（必填，越界即 true）
+
+## pending_requirements（护栏3）
+- req_id:          REQ-xxx（必填）
+- confidence:      low / none（必填）
+- reason:          文本（必填）
+- code_generated:  bool（必填，默认 false）
+
+## artifact_binding（回溯）
+- artifact_id:    字符串（必填）
+- req_id:         REQ-xxx（必填）
+- source_version: 快照版本号（必填）
+- timestamp:      ISO 时间（必填）

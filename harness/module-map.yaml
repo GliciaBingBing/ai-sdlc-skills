@@ -1,0 +1,18 @@
+# 功能 → 目录 映射（护栏2 范围自检的依据）
+# 维护方式：你（人）给出「有哪些功能模块」，AI 把每个模块映射到对应目录。
+# 初始建档：在 module-map.md 写清功能模块，让 AI 生成此 yaml；之后每次提交 AI 自动更新。
+#
+# 字段：
+#   module_id:  MOD-xxx（稳定ID）
+#   module_name: 功能模块名（用户视角）
+#   dirs:        该模块对应的目录数组（目录级粒度）
+#   owner:       维护人/AI 标记（可选）
+
+modules:
+  # 示例（删掉示例，换成你真实的功能模块）：
+  # - module_id: MOD-001
+  #   module_name: 账号管理
+  #   dirs:
+  #     - src/routes/account
+  #     - src/models/account
+  #   owner: user
