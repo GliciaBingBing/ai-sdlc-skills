@@ -86,7 +86,7 @@ qa-work/ 用例  +  人/AI 分工表  +  05-results 执行结果
 
 **为什么是"真多 Agent"而非"一个长 prompt"：**
 
-- **层级调度**：你 → phase agent → step agent，三层 agent 各管一摊。PRD/QA 的 phase agent 自己还会再派发 step agent，是真正的 agent 调 agent。
+- **层级调度**：你 → phase agent → step agent，三层 agent 各管一摊。PRD/QA 的 phase agent 自己还会再派发 step agent，是真正的 agent 调 agent。（在支持嵌套派发的运行时下为三层；若运行时限制子 agent 再派发，phase agent 会**内联执行** step，治理机制不变——这是优雅降级，不是缺陷。）
 - **上下文层层隔离**：每个 agent 启动时只读取上游产物文件，不继承任何聊天历史。对话再长，早期决策也不会被忘——这正是反漂移铁律的运行时保证。
 - **持久记忆跨会话**：编排器把三段进度写进 `<项目根>/.workbuddy/sdlc/state.json`（由 `sdlc_status.py` 读写，纯标准库、零依赖）。隔天回来说"继续"，从断点秒级恢复，不用重新交代。
 - **闸门只在真决策点停**：phase 之间靠产物自动流转；只有 phase 内部闸门（如 QA 的测试方案确认、DEV 的 G3 低置信上报）要求时才打断你。

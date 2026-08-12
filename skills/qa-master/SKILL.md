@@ -90,6 +90,8 @@ assigned_scn_ids: [SCN-001, SCN-002, ...]  ← 必须显式列出
 
 派发 ④、⑤：同理，替换 skill 路径 + 输入输出路径。
 
+> **嵌套派发不可用时的降级**：若子 agent 没有 Agent 工具权限、无法再嵌套派发（某些 agent 类型或深度限制会如此），则在 QA phase agent **内部内联执行**各步——依次加载 `qa-step1~5` 的 SKILL.md 完成产物。仍守反漂移铁律与闸门机制（gate_2 / gate_3 的确认与 auto-confirm 逻辑不变）。功能不受影响，仅少「step 层」上下文隔离。这是优雅降级，不是缺陷。
+
 ### 运行脚本
 
 ```bash
