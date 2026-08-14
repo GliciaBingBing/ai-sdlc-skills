@@ -32,8 +32,8 @@ AI 编程工具越来越强，但有三个通病：
 一套架在"需求"与"开发 AI"之间的 5 道门禁：
 `G1 自检闭环` / `G2 范围自检` / `G3 置信度上报` / `G4 一键还原` / `G5 代码清洁`。
 看不懂的需求不写、超范围的不提交、炸了能秒回退。
-其中 **G1（自检闭环）、G2（范围自检）已有机械脚本**（`harness/scripts/self_check.py` / `scope_check.py`，纯标准库），
-可挂 `git pre-commit` 自动拦截——越界改动 / build 不过直接拦下，不靠自觉。G3/G4/G5 为 AI 判断 / 手动快照 / 代码审查，
+其中 **G1（自检闭环）、G2（范围自检）、G4（一键还原）已有机械脚本**（`harness/scripts/self_check.py` / `scope_check.py` / `snapshot.py` + `rollback.py`，纯标准库），
+可挂 `git pre-commit` 自动拦截——越界改动 / build 不过直接拦下，快照 + 回退一键闭环，不靠自觉。G3（置信度）/ G5（代码清洁）为 AI 判断 / 代码审查，
 对应「确定性逻辑下沉脚本」的设计边界（详见 [`RUNTIME_CONTRACT.md`](RUNTIME_CONTRACT.md)）。
 
 ### 3. QA 流水线（`qa-master` + 5 步子技能，含 Python 工具链）
@@ -117,7 +117,7 @@ qa-work/ 用例  +  人/AI 分工表  +  05-results 执行结果
 - **机械闸门，跳过不可能**：QA 的 `gate_check` / `merge` / `trace_audit` 在跑之前检查上游产物的状态位，未 `confirmed` 直接 `exit(1)` 拒绝执行。"跳过确认"在工具层面无法发生，不是靠模型自觉。
 - **只在真决策点打断你**：`auto-confirm` 机制——子 agent 自检通过且无范围争议时，编排器自动放行、不弹窗；只有「测试方案」「人机分工」这类真要判断的节点才请你拍板。既不每步烦你，也不悄悄跑飞。
 - **长链路不漂移**：每一步都是独立子 agent，启动时只读取上游产物文件，不继承任何聊天历史。对话再长，早期决策也不会被忘。
-- **炸了能秒回退**：dev-harness 的 G4 一键还原，重要节点存快照；上轮炸了，原版本保留、一键回退。
+- **炸了能秒回退**：dev-harness 的 G4 一键还原，`snapshot.py` 存盘、`rollback.py` 一键还原（版本级目录快照，独立于 git 历史）；上轮炸了，原版本保留、秒级回退。
 - **需求 ↔ 用例可追溯**：`trace_audit` 逐条比对每个需求是否被用例回指，漏测即拦截——不会"测了一堆却没覆盖关键需求"。
 - **失败时回填上游**：下游变了自动回头同步上游文档，产物始终一致。
 
@@ -191,7 +191,7 @@ ai-sdlc-skills/
 │   └── dev-harness/        # 受治理开发门禁
 └── harness/                # dev-harness 依赖的治理母本
     ├── guardrails/         # G1~G5 五道门禁
-    ├── scripts/            # G1/G2 机械门禁脚本（self_check / scope_check / pre-commit）
+    ├── scripts/            # 机械门禁脚本（self_check / scope_check / pre-commit / snapshot / rollback）
     ├── module-map.yaml/.md # 功能 → 目录 映射
     ├── request.schema      # 产物报告字段规范
     ├── requirement.example.md

@@ -1,4 +1,8 @@
 __pycache__/
 *.pyc
 .DS_Store
-.idea/
+.idea
+
+# 运行期生成的版本快照（G4 护栏）：保留 README，排除快照内容本身
+harness/snapshots/*
+!harness/snapshots/README.md

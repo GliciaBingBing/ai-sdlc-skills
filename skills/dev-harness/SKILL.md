@@ -35,11 +35,11 @@ description: 受治理的 AI 开发门禁（harness）。当用户要求写代�
 
 **护栏3 置信度上报**：看不懂 / 低置信（low/none）的需求项**不写代码**，列成 pending_requirements 反馈用户确认，不私自拍板。高置信部分可先做。
 
-**护栏4 一键还原**：在重要节点手动存版本快照到 `snapshots/<version>/`；上轮炸了触发回退，原版本保留。验证 harness 稳定前手动，不自动。
+**护栏4 一键还原**：在重要节点用 `harness/scripts/snapshot.py` 存版本快照到 `snapshots/<id>/`，上轮炸了用 `harness/scripts/rollback.py` 一键还原（版本级目录快照，独立于 git 历史）。原版本保留、可随时切回。AI 不擅自回退——由用户在「这轮炸了」时显式触发。
 
 **护栏5 代码清洁**：不生成死代码/垃圾代码/冗余注释；提交前清理无用代码与过期注释。
 
-> **机械门禁脚本（dev 段硬度对齐 QA）**：护栏1（自检闭环）由 `harness/scripts/self_check.py` 机械执行——build/test 不过即 `exit(1)` 拦截「报完成」；护栏2（范围自检）由 `harness/scripts/scope_check.py` 机械执行——越界即 `exit(1)` 拦截提交，可挂 `harness/scripts/pre-commit-scope.py` 做 git pre-commit 自动检查。两者均纯标准库、克隆即跑。G3（置信度上报）/ G4（一键还原）/ G5（代码清洁）仍为 AI 判断 / 手动快照 / 代码审查——对应「确定性逻辑下沉为脚本、易变表达留提示词」的设计边界。无 Python / 无 git 时，所有机械门禁退回读 .md 自觉执行（不崩，仅不强制）。
+> **机械门禁脚本（dev 段硬度对齐 QA）**：护栏1（自检闭环）由 `harness/scripts/self_check.py` 机械执行——build/test 不过即 `exit(1)` 拦截「报完成」；护栏2（范围自检）由 `harness/scripts/scope_check.py` 机械执行——越界即 `exit(1)` 拦截提交，可挂 `harness/scripts/pre-commit-scope.py` 做 git pre-commit 自动检查；护栏4（一键还原）由 `harness/scripts/snapshot.py`（存盘）+ `rollback.py`（还原）机械执行——版本级目录快照、独立于 git 历史、一键回退。三者均纯标准库、克隆即跑。G3（置信度上报）/ G5（代码清洁）仍为 AI 判断 / 代码审查——对应「确定性逻辑下沉为脚本、易变表达留提示词」的设计边界。无 Python / 无 git 时，所有机械门禁退回读 .md 自觉执行（不崩，仅不强制）。
 
 ## 报「完成」的硬性条件（缺一不可）
 - [ ] build 成功、相关测试通过
