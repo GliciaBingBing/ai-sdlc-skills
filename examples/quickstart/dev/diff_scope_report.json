@@ -1,0 +1,13 @@
+{
+  "changed_files": [
+    "src/routes/account/reset.py",
+    "src/models/account/user.py",
+    "src/routes/account/login.py"
+  ],
+  "mapped_modules": [
+    "MOD-001"
+  ],
+  "out_of_scope": [],
+  "blocked": false,
+  "note": "本次改动全部落在 module-map 允许的账号管理目录内，提交前 scope_check.py 放行"
+}

@@ -31,7 +31,10 @@ AI 编程工具越来越强，但有三个通病：
 ### 2. 受治理开发（`dev-harness` + `harness/` 治理母本）
 一套架在"需求"与"开发 AI"之间的 5 道门禁：
 `G1 自检闭环` / `G2 范围自检` / `G3 置信度上报` / `G4 一键还原` / `G5 代码清洁`。
-看不懂的需求不写、超范围的不提交、炸了能秒回退。治理规则以**人读 + AI 读**双视图存在。
+看不懂的需求不写、超范围的不提交、炸了能秒回退。
+其中 **G1（自检闭环）、G2（范围自检）已有机械脚本**（`harness/scripts/self_check.py` / `scope_check.py`，纯标准库），
+可挂 `git pre-commit` 自动拦截——越界改动 / build 不过直接拦下，不靠自觉。G3/G4/G5 为 AI 判断 / 手动快照 / 代码审查，
+对应「确定性逻辑下沉脚本」的设计边界（详见 [`RUNTIME_CONTRACT.md`](RUNTIME_CONTRACT.md)）。
 
 ### 3. QA 流水线（`qa-master` + 5 步子技能，含 Python 工具链）
 把"测什么"变成"可执行的用例 + 人/AI 分工表 + 执行报告"。不只是 prompt——
@@ -103,7 +106,7 @@ qa-work/ 用例  +  人/AI 分工表  +  05-results 执行结果
 | --- | --- | --- |
 | **长对话失忆** | 决策散在聊天里，越长越漂移，前后产物对不上 | **文件化交接**：步骤间唯一接口是产物文件，聊天噪音到此为止，从根上 anti-drift |
 | **全自动跑飞** | Agent 自己拍板推进，没人拦 | **确认闸门**：关键节点必须人确认，Agent 不私自往下走 |
-| **规则靠嘴约束** | 写「请遵守 XX 规范」，靠模型自觉 | **真实工具链**：能写成代码的校验/追溯就用 Python 干（`gate_check` / `trace_audit` / `merge`），不靠自觉 |
+| **规则靠嘴约束** | 写「请遵守 XX 规范」，靠模型自觉 | **真实工具链**：能写成代码的校验/追溯/范围/自测就用 Python 干（`gate_check` / `trace_audit` / `merge` / `scope_check` / `self_check`），不靠自觉 |
 
 一句话：别人交的是「更好的提示词」，我们交的是「一套带闸门和工具链的治理流水线」。
 
@@ -145,7 +148,9 @@ qa-work/ 用例  +  人/AI 分工表  +  05-results 执行结果
 
 即使你不装 WorkBuddy，本仓库的 **README + 架构图 + 各 skill 的产物规范**也能让你完整看懂
 "如何治理 AI 开发"。这套方法论可平移到 Cursor / Claude Code / Codex 等任何 Agent 运行时——
-把 `guardrails/` 和"确认闸门"搬过去即可。
+把 `guardrails/` 和"确认闸门"搬过去即可（具体依赖见 [`RUNTIME_CONTRACT.md`](RUNTIME_CONTRACT.md)）。
+
+- 👉 **想一眼看懂产出长啥样？** 看 [`examples/quickstart/`](examples/quickstart/README.md)——从「一句话需求」到「PRD / 开发 4 份报告 / QA 结果」的精简示例。
 
 > 注：本仓库的 skill 使用 WorkBuddy 的 Skill / Agent / 文件工具原语，是唯一可"直接运行"的环境。
 > 其价值更在**设计思路**本身。
@@ -160,6 +165,8 @@ ai-sdlc-skills/
 ├── LICENSE                 # MIT
 ├── .gitignore
 ├── .gitattributes
+├── RUNTIME_CONTRACT.md     # 宿主运行时能力契约（可移植的前提）
+├── examples/               # 一眼看懂的完整示例（quickstart）
 ├── assets/
 │   └── architecture.svg    # 架构图（本文档配图）
 ├── skills/
@@ -184,6 +191,7 @@ ai-sdlc-skills/
 │   └── dev-harness/        # 受治理开发门禁
 └── harness/                # dev-harness 依赖的治理母本
     ├── guardrails/         # G1~G5 五道门禁
+    ├── scripts/            # G1/G2 机械门禁脚本（self_check / scope_check / pre-commit）
     ├── module-map.yaml/.md # 功能 → 目录 映射
     ├── request.schema      # 产物报告字段规范
     ├── requirement.example.md

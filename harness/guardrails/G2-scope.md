@@ -1,5 +1,10 @@
 # 护栏2 · 改动范围自检（Scope Gate）
 
+> **机械落地**：`harness/scripts/scope_check.py` 是本护栏的可执行版——读 `module-map.yaml`
+> 拿允许目录，比对本次 `git` 改动，越界即 `exit(1)` 拦截提交，并输出 `diff_scope_report`。
+> 可挂成 git pre-commit 钩子（`pre-commit-scope.py`）实现「提交前自动检查」。
+> 优先调脚本；无 map / 无 git / 无 Python 时退回本 .md 自觉执行（降级放行）。
+
 ## 规则
 - 改动范围**不得超出** requirement.md 中该需求所指定模块，在 module-map.yaml 中对应的目录。
 - 写码后比对 `changed_files` 与 module-map；凡落在需求模块目录之外的文件 → 视为越界。

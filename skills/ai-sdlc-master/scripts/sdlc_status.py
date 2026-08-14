@@ -25,6 +25,29 @@ import json
 import datetime
 
 
+SCHEMA_VERSION = 1
+
+
+def migrate(data):
+    """把旧/无版本的 state.json 升级到当前 SCHEMA_VERSION。
+
+    升级链可随版本增长追加（v1 → v2 → ...）。返回升级后的 data。
+    设计意图：state.schema 里已声明 schema_version，但「有版本号」必须配合
+    「能迁移」才有意义——否则升 v2 时旧 state.json 直接崩，与「断点续跑可靠性」
+    自相矛盾。
+    """
+    v = data.get("schema_version", 0)
+    if v < 1:
+        # v0（无版本，早期草稿）：补全缺失字段并置版本号
+        data.setdefault("project", {"name": "", "slug": "", "root": ""})
+        data.setdefault("phases", {})
+        data.setdefault("current_phase", "prd")
+        data.setdefault("updated_at", "")
+        data["schema_version"] = SCHEMA_VERSION
+    # 未来版本在此追加：elif v < 2: 兼容 v2 字段迁移
+    return data
+
+
 def state_path(root):
     # 项目记忆放在 <项目根>/.workbuddy/sdlc/state.json
     # 与 dev-harness 的治理目录同族（.workbuddy/ 下），属于「项目级持久记忆」
@@ -36,7 +59,9 @@ def load(root):
     if not os.path.exists(p):
         return None
     with open(p, encoding="utf-8") as f:
-        return json.load(f)
+        data = json.load(f)
+    # 版本检查 + 迁移：旧/无版本 state.json 自动升级，避免直接崩
+    return migrate(data)
 
 
 def save(root, data):

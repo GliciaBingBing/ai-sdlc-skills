@@ -1,5 +1,9 @@
 # 护栏1 · 自检闭环（Self-Check Gate）
 
+> **机械落地**：`harness/scripts/self_check.py` 是本护栏的可执行版——跑 build+test，
+> 任一失败 `exit(1)` 拦截「报完成」，并输出 `self_check_report`。优先调脚本，
+> 非 Python 环境退回本 .md 自觉执行。
+
 ## 规则
 - 写完代码，**必须先自己 build + 跑测试**，全部通过，才允许向用户报「完成」。
 - build 或 test 失败 → 自行继续修复，直到通过；**不得**把未通过的代码报成完成。

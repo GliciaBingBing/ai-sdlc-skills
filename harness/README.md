@@ -10,6 +10,7 @@
 - `guardrails/G3-confidence.md` — 护栏3 置信度上报（看不懂的需求不写，先反馈）
 - `guardrails/G4-rollback.md` — 护栏4 一键还原（版本级手动快照，炸了秒回退）
 - `guardrails/G5-clean.md` — 护栏5 代码清洁（无死代码/垃圾代码/冗余注释）
+- `scripts/self_check.py` / `scope_check.py` / `pre-commit-scope.py` — 护栏1/2 的机械落地脚本（纯标准库）
 - `module-map.yaml` / `module-map.md` — 功能→目录 映射（护栏2 依据）；**你只写功能名，AI 读代码库自动补全目录映射**
 - `requirement.example.md` — 需求文档**可选**模板（需求你直接给，不必放这）
 - `request.schema` — 产物报告字段规范
