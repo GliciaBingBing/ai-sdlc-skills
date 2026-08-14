@@ -10,7 +10,10 @@ dev_gate_check.py - DEV 段需求覆盖闸门
   python dev_gate_check.py <prd.md> <artifact_binding.json> [--report <out.json>]
 
 退出码：0=覆盖完整（放行）  1=存在缺口（拦截）
-降级：PRD 无 REQ-ID 或 artifact_binding 缺失 → 不拦截（warning + exit 0），避免误杀。
+降级边界（刻意拆分）：
+  - PRD 无 REQ-ID → 上游未给齐编号，降级不拦截（warning + exit 0），归人审管；
+  - artifact_binding 缺失/损坏 → 这是 dev 阶段自身的必需产物，缺失即未完成，
+    不降级，直接 exit(1) 拦截（门禁看守的就是 dev 阶段，被看守对象自己的必需产出缺失不能放行）。
 """
 import json
 import re
@@ -71,8 +74,10 @@ def main():
 
     dev_reqs = extract_dev_req_ids(binding_path)
     if dev_reqs is None:
-        print(f"⚠️ dev_gate_check 降级：artifact_binding 缺失/损坏（{binding_path}）。不拦截。")
-        sys.exit(0)
+        print(f"🚫 dev_gate_check 拦截：artifact_binding 缺失/损坏（{binding_path}）。")
+        print("   binding 是 dev 阶段自身的必需产物，缺失即视为 dev 阶段未完成，不降级放行。")
+        print("   请先产出合法的 artifact_binding.json（每条实现回指 PRD 的 REQ-ID）再报完成。")
+        sys.exit(1)
 
     gaps = [r for r in prd_reqs if r not in dev_reqs]
     report = {
