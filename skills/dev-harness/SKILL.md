@@ -41,11 +41,22 @@ description: 受治理的 AI 开发门禁（harness）。当用户要求写代�
 
 > **机械门禁脚本（dev 段硬度对齐 QA）**：护栏1（自检闭环）由 `harness/scripts/self_check.py` 机械执行——build/test 不过即 `exit(1)` 拦截「报完成」；护栏2（范围自检）由 `harness/scripts/scope_check.py` 机械执行——越界即 `exit(1)` 拦截提交，可挂 `harness/scripts/pre-commit-scope.py` 做 git pre-commit 自动检查；护栏4（一键还原）由 `harness/scripts/snapshot.py`（存盘）+ `rollback.py`（还原）机械执行——版本级目录快照、独立于 git 历史、一键回退。三者均纯标准库、克隆即跑。G3（置信度上报）/ G5（代码清洁）仍为 AI 判断 / 代码审查——对应「确定性逻辑下沉为脚本、易变表达留提示词」的设计边界。无 Python / 无 git 时，所有机械门禁退回读 .md 自觉执行（不崩，仅不强制）。
 
-## 报「完成」的硬性条件（缺一不可）
-- [ ] build 成功、相关测试通过
+> **需求覆盖闸门（dev_gate_check.py）**：护栏1/2/4 防的是「跑不通/越界/炸了」，但防不了「PRD 要的 10 条你只做了 7 条」。新增 `harness/scripts/dev_gate_check.py` 比对 PRD 的 REQ-ID 清单（04-prd.md 功能需求锚点）与 DEV 实现回指的 REQ-ID（artifact_binding），缺口即 `exit(1)` 拦截「静默漏做 PRD 要求」。这是 dev 段弥补「靠自觉」的最后一道机械门禁，对齐 qa-master 的 `trace_audit`（QA 段 REQ 覆盖校验）。
+
+## 报「完成」的硬性条件（缺一不可，前三条为机械门禁，必须实际跑脚本拿报告）
+
+> **强制挂载说明**：护栏1/2/4 不是"读 .md 自觉"，而是**必须实际调用脚本并拿到报告**才允许报完成——
+> 护栏1 跑 `harness/scripts/self_check.py` 拿 `self_check_report`（build/test 不过即视为未完成，exit 1）；
+> 护栏2 跑 `harness/scripts/scope_check.py` 拿 `diff_scope_report`（blocked=true 即视为未完成，exit 1）；
+> 护栏4 在重要节点跑 `harness/scripts/snapshot.py` 存快照（推荐，非强制拦截）。
+> 仅当环境无 Python / 无 git 才降级为读 .md 自觉（不崩，但失去机械强制）。
+
+- [ ] 跑 `self_check.py` → build 成功、相关测试通过（护栏1，机械）
+- [ ] 跑 `scope_check.py` → diff_scope_report.blocked = false（无越界，护栏2，机械）
+- [ ] 重要节点已跑 `snapshot.py` 存快照（护栏4，机械，建议）
 - [ ] code_clean = true（护栏5）
-- [ ] diff_scope_report.blocked = false（无越界）
-- [ ] 无 low/none 置信度需求被私自实现（pending 已上报用户）
+- [ ] 无 low/none 置信度需求被私自实现（pending 已上报用户，护栏3）
+- [ ] 跑 `dev_gate_check.py` → PRD 的 REQ-ID 全部被 DEV 实现回指（需求覆盖，机械）
 - [ ] 产出 4 份报告：self_check_report / diff_scope_report / pending_requirements / artifact_binding（字段见 `request.schema`）
 
 ## 默认护栏（项目无 harness 目录时的兜底，与 guardrails/ 文件一致）
