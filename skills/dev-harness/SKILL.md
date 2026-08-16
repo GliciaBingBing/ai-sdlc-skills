@@ -30,8 +30,8 @@ description: 受治理的 AI 开发门禁（harness）。当用户要求写代�
 
 **护栏1 自检闭环**：写完先自己 build + 跑测试，全过才报完成；失败就自己修，不甩给用户。配合护栏5 检查 code_clean。
 
-**护栏2 范围自检**：改动不得超出需求所指向模块在 module-map 中的目录。越界文件 → 不提交、不向用户报文件级 diff，提示确认范围或更新地图。module-map 缺失则降级仅执行 1/3/5 并提示建档。
-（注：需求是否文件化与护栏2 无关；护栏2 的"范围"来自 module-map 的模块目录。已有 `harness/scripts/scope_check.py` 机械执行，可挂 git pre-commit 自动拦。）
+**护栏2 范围自检 + 申诉通道**：改动不得超出需求所指向模块在 module-map 中的目录。越界文件不再一刀切拦截，而是按影响层（UI 层 / 函数依赖 / 配置）自动分级 → 进申诉通道：已在 `harness/appeal_log.yaml` 签字放行的越界文件放行（`appealed_ok`），未签字的才 `exit(1)` 拦提交（`appeal_needed`）。函数依赖 / 跨模块共享须 **human 显式签字**，AI 自签无效。module-map 缺失则降级仅执行 1/3/5 并提示建档。
+（注：护栏2 的"范围"来自 module-map 的模块目录。已有 `harness/scripts/scope_check.py` 机械执行，可挂 git pre-commit 自动拦；申诉白名单见 `harness/appeal_log.yaml`。）
 
 **护栏3 置信度上报**：看不懂 / 低置信（low/none）的需求项**不写代码**，列成 pending_requirements 反馈用户确认，不私自拍板。高置信部分可先做。
 
@@ -39,7 +39,7 @@ description: 受治理的 AI 开发门禁（harness）。当用户要求写代�
 
 **护栏5 代码清洁**：不生成死代码/垃圾代码/冗余注释；提交前清理无用代码与过期注释。
 
-> **机械门禁脚本（dev 段硬度对齐 QA）**：护栏1（自检闭环）由 `harness/scripts/self_check.py` 机械执行——build/test 不过即 `exit(1)` 拦截「报完成」；护栏2（范围自检）由 `harness/scripts/scope_check.py` 机械执行——越界即 `exit(1)` 拦截提交，可挂 `harness/scripts/pre-commit-scope.py` 做 git pre-commit 自动检查；护栏4（一键还原）由 `harness/scripts/snapshot.py`（存盘）+ `rollback.py`（还原）机械执行——版本级目录快照、独立于 git 历史、一键回退。三者均纯标准库、克隆即跑。G3（置信度上报）/ G5（代码清洁）仍为 AI 判断 / 代码审查——对应「确定性逻辑下沉为脚本、易变表达留提示词」的设计边界。无 Python / 无 git 时，所有机械门禁退回读 .md 自觉执行（不崩，仅不强制）。
+> **机械门禁脚本（dev 段硬度对齐 QA）**：护栏1（自检闭环）由 `harness/scripts/self_check.py` 机械执行——build/test 不过即 `exit(1)` 拦截「报完成」；护栏2（范围自检）由 `harness/scripts/scope_check.py` 机械执行——越界文件按影响层分级：已在 `appeal_log.yaml` 签字放行的放行，未签字的 `exit(1)` 拦截提交，可挂 `harness/scripts/pre-commit-scope.py` 做 git pre-commit 自动检查；护栏4（一键还原）由 `harness/scripts/snapshot.py`（存盘）+ `rollback.py`（还原）机械执行——版本级目录快照、独立于 git 历史、一键回退。三者均纯标准库、克隆即跑。G3（置信度上报）/ G5（代码清洁）仍为 AI 判断 / 代码审查——对应「确定性逻辑下沉为脚本、易变表达留提示词」的设计边界。无 Python / 无 git 时，所有机械门禁退回读 .md 自觉执行（不崩，仅不强制）。
 
 > **需求覆盖闸门（dev_gate_check.py）**：护栏1/2/4 防的是「跑不通/越界/炸了」，但防不了「PRD 要的 10 条你只做了 7 条」。新增 `harness/scripts/dev_gate_check.py` 比对 PRD 的 REQ-ID 清单（04-prd.md 功能需求锚点）与 DEV 实现回指的 REQ-ID（artifact_binding），缺口即 `exit(1)` 拦截「静默漏做 PRD 要求」。这是 dev 段弥补「靠自觉」的最后一道机械门禁，对齐 qa-master 的 `trace_audit`（QA 段 REQ 覆盖校验）。
 
@@ -52,7 +52,7 @@ description: 受治理的 AI 开发门禁（harness）。当用户要求写代�
 > 仅当环境无 Python / 无 git 才降级为读 .md 自觉（不崩，但失去机械强制）。
 
 - [ ] 跑 `self_check.py` → build 成功、相关测试通过（护栏1，机械）
-- [ ] 跑 `scope_check.py` → diff_scope_report.blocked = false（无越界，护栏2，机械）
+- [ ] 跑 `scope_check.py` → diff_scope_report.blocked = false（无未签字越界；越界文件须走申诉通道在 `appeal_log.yaml` 签字放行，护栏2，机械）
 - [ ] 重要节点已跑 `snapshot.py` 存快照（护栏4，机械，建议）
 - [ ] code_clean = true（护栏5）
 - [ ] 无 low/none 置信度需求被私自实现（pending 已上报用户，护栏3）

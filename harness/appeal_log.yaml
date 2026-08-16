@@ -1,0 +1,21 @@
+# 护栏2 申诉白名单（越界改动的已批准例外）
+#
+# 作用：scope_check.py 命中越界文件时，不再一律拦截，而是按影响层分级处置。
+#       已在此处签字的越界文件，重跑 scope_check 即通过（不再 blocked）。
+#
+# 字段：
+#   file:         越界文件的 repo 相对路径（必填，须与 scope_check 报出的路径一致）
+#   layer:        UI 层 / 函数依赖 / 配置（可覆盖脚本自动探测；函数依赖风险最高）
+#   impact_scope: 一句话说明影响范围（必填；为空视为申诉未完成，仍拦截）
+#   approved_by:  human / ai-reviewed（必填；函数依赖须 human 显式签字）
+#   approved_at:  YYYY-MM-DD（签字日期）
+#
+# 流程：scope_check 报出 appeal_needed → 你在此补一条并签字 → 重跑通过。
+
+appeals:
+  # 示例（删掉，换成真实申诉）：
+  # - file: src/shared/Button.tsx
+  #   layer: UI 层
+  #   impact_scope: "新增通用按钮组件，仅账号管理页引用，不影响其他模块逻辑"
+  #   approved_by: human
+  #   approved_at: 2026-08-16

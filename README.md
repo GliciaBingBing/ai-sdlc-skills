@@ -33,7 +33,7 @@ AI 编程工具越来越强，但有三个通病：
 `G1 自检闭环` / `G2 范围自检` / `G3 置信度上报` / `G4 一键还原` / `G5 代码清洁`。
 看不懂的需求不写、超范围的不提交、炸了能秒回退。
 其中 **G1（自检闭环）、G2（范围自检）、G4（一键还原）、需求覆盖闸门（dev_gate_check）均有机械脚本**（`harness/scripts/` 下 self_check / scope_check / snapshot+rollback / dev_gate_check，纯标准库），
-可挂 `git pre-commit` 自动拦截——越界改动 / build 不过直接拦下，快照 + 回退一键闭环，dev_gate_check 比对 PRD 的 REQ-ID 与 DEV 实现回指，缺口即拦截「静默漏做 PRD 要求」。dev 段从「靠自觉」升级为「机械拦截」，硬度已对齐 QA。G3（置信度）/ G5（代码清洁）为 AI 判断 / 代码审查，
+可挂 `git pre-commit` 自动拦截——越界改动按**影响层分级处置**（UI 层 / 配置→人审放行，函数依赖→强制 sign-off，申诉白名单 `appeal_log.yaml`）；build 不过直接拦下，快照 + 回退一键闭环，dev_gate_check 比对 PRD 的 REQ-ID 与 DEV 实现回指，缺口即拦截「静默漏做 PRD 要求」。dev 段从「靠自觉」升级为「机械拦截」，硬度已对齐 QA。G3（置信度）/ G5（代码清洁）为 AI 判断 / 代码审查，
 对应「确定性逻辑下沉脚本」的设计边界（详见 [`RUNTIME_CONTRACT.md`](RUNTIME_CONTRACT.md)）。
 
 ### 3. QA 流水线（`qa-master` + 5 步子技能，含 Python 工具链）

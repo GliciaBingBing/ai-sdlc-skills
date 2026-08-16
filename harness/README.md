@@ -6,12 +6,13 @@
 
 ## 目录结构
 - `guardrails/G1-selfcheck.md` — 护栏1 自检闭环（build/test 通过才报完成）
-- `guardrails/G2-scope.md` — 护栏2 范围自检（改动不得超出 module-map 指定模块）
+- `guardrails/G2-scope.md` — 护栏2 范围自检 + 申诉通道（越界按影响层分级；签字放行见 `appeal_log.yaml`）
 - `guardrails/G3-confidence.md` — 护栏3 置信度上报（看不懂的需求不写，先反馈）
 - `guardrails/G4-rollback.md` — 护栏4 一键还原（版本级手动快照，炸了秒回退）
 - `guardrails/G5-clean.md` — 护栏5 代码清洁（无死代码/垃圾代码/冗余注释）
 - `scripts/self_check.py` / `scope_check.py` / `pre-commit-scope.py` — 护栏1/2 的机械落地脚本（纯标准库）
-- `module-map.yaml` / `module-map.md` — 功能→目录 映射（护栏2 依据）；**你只写功能名，AI 读代码库自动补全目录映射**
+- `module-map.yaml` / `module-map.md` — 功能→目录 映射（护栏2 允许范围依据）；**你只写功能名，AI 读代码库自动补全目录映射**
+- `appeal_log.yaml` — 护栏2 申诉白名单（已签字的越界文件放行，分级处置依据）
 - `requirement.example.md` — 需求文档**可选**模板（需求你直接给，不必放这）
 - `request.schema` — 产物报告字段规范
 - `snapshots/` — 版本快照，回退用

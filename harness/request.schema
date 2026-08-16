@@ -17,11 +17,21 @@
 - failed:        失败项数组（status=fail 时必填）
 - code_clean:    bool（必填，护栏5）
 
-## diff_scope_report（护栏2）
+## diff_scope_report（护栏2 / 申诉通道）
 - changed_files:   路径数组（必填）
 - mapped_modules:  MOD-xxx 数组（必填）
 - out_of_scope:    越界文件数组（必填）
-- blocked:         bool（必填，越界即 true）
+- appeal_needed:   待申诉清单（必填）；每项：
+  - file:           越界文件（必填）
+  - layer:          UI 层 / 函数依赖 / 配置（自动探测，必填）
+  - shared:         bool（是否跨模块共享路径，函数依赖时为 true）
+  - required_action: 人审放行 / 强制 sign-off（必填）
+- appealed_ok:     已签字放行的越界文件（必填）；每项：
+  - file:           文件（必填）
+  - layer:          层别（必填）
+  - approved_by:    human / ai-reviewed（必填）
+  - approved_at:    YYYY-MM-DD（必填）
+- blocked:         bool（必填，仅当存在未签字申诉时为 true）
 
 ## pending_requirements（护栏3）
 - req_id:          REQ-xxx（必填）
