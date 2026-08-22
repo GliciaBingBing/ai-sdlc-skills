@@ -51,7 +51,12 @@ python {SKILL_ROOT}/../ai-sdlc-master/scripts/sdlc_status.py set  <项目根> <p
 ```
 你是 ai-sdlc 流水线的 PRD phase agent。请加载 skill prd-master，按其对 <slug> 执行完整 PRD 流水线。
 你的工作目录约定见 prd-master SKILL.md（prd-work/<slug>/）。
-项目记忆：slug=<slug>，根=<根>。完成后回报产物路径清单（01~05）。
+项目记忆：slug=<slug>，根=<根>。
+
+【派发方式】subagent_type: general-purpose；只读上游产物文件，不继承任何聊天历史；上下文隔离。
+【停止规则】PRD 每步（拷问 / 故事 / 大纲 / PRD / 原型）的 AskUserQuestion 必须停下等真人确认，不得跳过或自签；brief 与故事互斥的冲突须暂停、交回 master 裁决。
+【通过 → 调度下一轮】仅当本段全部产物（01~05）落盘、内部闸门由 prd-master 自控 confirmed 后，return 回 master 并回报产物路径清单，由 master 决定是否进入 DEV。
+【返回上一层】任何需真人拍板或超出本 phase 权限的事项，return 给 master，不得自行跨 phase 推进。
 ```
 - 完成后：把 `prd-work/<slug>/04-prd.md` 登记进 `state.json` 的 `phases.prd.outputs`，
   `sdlc_status.py set <根> prd done confirmed`（PRD 段内部闸门由 prd-master 自己控）。
@@ -64,6 +69,11 @@ python {SKILL_ROOT}/../ai-sdlc-master/scripts/sdlc_status.py set  <项目根> <p
 你是 ai-sdlc 流水线的 DEV phase agent。请加载 skill dev-harness，实现 <slug> 的需求。
 需求来源文件（你唯一的需求输入）：prd-work/<slug>/04-prd.md
 项目根=<根>。按 harness 5 道门禁走完，产出 4 份报告（字段见 harness request.schema）。
+
+【派发方式】subagent_type: general-purpose；只读 04-prd.md 与上游产物，不继承聊天历史。
+【停止规则】① 真要写代码前，先 halt 回 master 向真人确认「是否开始实现」；② 遇 G3 低置信（pending_requirements 未清零）必须 halt 上报真人，不得自行写代码或自签；③ 任何 phase 边界前 halt 等授权。
+【通过 → 调度下一轮】5 道门禁全过、4 份报告落盘后，return 回 master 并回报报告路径，由 master 决定是否进入 QA。
+【返回上一层】低置信 / 范围不清 / 需真人决策，return 给 master；不得自行进入 QA 或改 PRD。
 ```
 - 完成后：`sdlc_status.py set <根> dev done confirmed`，把 4 份报告路径登记进 `phases.dev.reports`。
 - **handoff**：dev 的 `artifact_binding` 报告 + 实际代码目录，作为阶段 3 的 `_tech/` 与需求基线。
@@ -78,6 +88,11 @@ cp prd-work/<slug>/04-prd.md qa-work/<slug>/00-inputs/
 ```
 你是 ai-sdlc 流水线的 QA phase agent。请加载 skill qa-master，对 <slug> 执行完整 QA Pipeline。
 需求与产物已在 qa-work/<slug>/00-inputs/（含 PRD + dev 实现说明）；_tech/ 为代码库。
+
+【派发方式】subagent_type: general-purpose；只读 00-inputs/ 与 _tech/，不继承聊天历史。
+【停止规则】① gate_2（测试方案）/ gate_3（分类）存在范围争议或自检未过时，必须 halt 等真人确认，不得 auto-confirm；② 任何 phase 边界前 halt 等授权。
+【通过 → 调度下一轮】QA 全段产物（04-cases.xlsx / 05-results.xlsx）落盘、闸门 confirmed 后，return 回 master 回报结果。
+【返回上一层】范围争议 / 需真人裁决，return 给 master；不得自行回改 PRD/DEV 文件（按返工铁律由 master 触发上游重跑）。
 ```
 - 完成后：`sdlc_status.py set <根> qa done confirmed`。
 
@@ -85,9 +100,25 @@ cp prd-work/<slug>/04-prd.md qa-work/<slug>/00-inputs/
 
 - PRD 段闸门由 `prd-master` 内部处理；DEV 段涉及真实代码写/改，G3 遇 low/none 必须上报用户；
   QA 段闸门 `gate_2` / `gate_3` 可由 `qa-master` 在「自检过 + 无范围争议」时 auto-confirm。
-- **你不在 phase 边界额外 ping 用户**——phase 之间靠产物自动流转；只有 phase 内部闸门要求时才停。
+- **phase 边界必须 halt 回主对话、用 AskUserQuestion 向真人报告并请求进入下一 phase 的授权**；仅在 auto-confirm 授权（主对话模式 + 真人显式授权无人值守）下才可跳过往下走。
 - 任何 phase 未完成、闸门未 `confirmed`，**绝不**进入下一 phase（dev 未 confirmed 不进 QA）。
   派发前用 `sdlc_status.py show <根>` 校验 `current_phase` 与上个 phase 的 gate。
+
+## 派发指令公约（每次派发必带四要素）
+
+**子 agent 不读本 SKILL.md，只接收派发时写的那段 prompt**——所以 halt / 通过 / 返回规则必须**内联进每一次派发的 prompt**，而不是集中写在这里。上面三个阶段模板已各自内联以下四要素，每次新增派发也必须照此写：
+
+- **派发方式**：subagent_type、只读上游产物、不继承聊天历史、上下文隔离。
+- **停止规则**：遇到哪些节点必须 halt 回主对话、等真人确认（不可被 auto-confirm 吞噬、不可自签）。
+- **通过 → 调度下一轮**：满足什么条件才 return 并交 master 决定是否续跑。
+- **返回上一层**：哪些事项必须 return 给 master，不得自行跨 phase 推进或越权改上游。
+
+### 四要素的共同底线（防自签）
+- 上述 halt 点，子 agent 只能 `return` 或写 `pending` / `human_pending`，**不得自行写 `gate_N: confirmed`**。
+- `confirmed` 状态位**只能由主对话在真人 `AskUserQuestion` 确认后回写**；子 agent 写出的 `confirmed` 视为无效，机械闸门（`gate_check.py`）应拒绝。
+- **auto-confirm 边界**：仅当「主对话模式 + 真人显式授权无人值守」时可用；**自动调度（无人值守）模式下一律关闭 auto-confirm**，所有 gate 必须真人确认。
+
+> 一句话：继续是默认，停止 / 返回是必须显式写进每次派发 prompt 的硬规则。任何「无人确认就往下走」都是 bug。
 
 ## 断点续跑
 

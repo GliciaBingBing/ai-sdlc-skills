@@ -264,19 +264,19 @@ python {SKILL_ROOT}/scripts/trace_audit.py 02-scenarios.md 03-cases.md
 | 闸门 | 位置 | 状态位 | 语义 | 不放行条件 |
 |------|------|--------|------|------------|
 | 1（冲突裁决·非确认） | ①→② | `01-requirements.md` 的 `conflicts_status` | **需求不审**；仅冲突时阻塞 | `conflicts_status: pending`（有未裁决冲突）；无冲突自动放行，不要求 confirmed |
-| 2（主确认·需求探针） | ②→③ | `02-scenarios.md` 的 `gate_2` | 测试方案=需求理解探针；**子 agent 自检过 + 无范围争议 → 编排器 auto-confirm，不 ping 用户** | 非 `confirmed`；或测试方案空泛（如"全面测试确保质量"） |
-| 3（分类过目） | ④→⑤ | `04-cases.md` 的 `gate_3` | 人机分工切割；**子 agent 自检过 + 无范围争议 → 编排器 auto-confirm** | 非 `confirmed` |
+| 2（主确认·需求探针） | ②→③ | `02-scenarios.md` 的 `gate_2` | 测试方案=需求理解探针；**子 agent 自检过 + 无范围争议 → 编排器 auto-confirm，不 ping 用户（仅主对话模式；无人值守模式须真人确认）** | 非 `confirmed`；或测试方案空泛（如"全面测试确保质量"） |
+| 3（分类过目） | ④→⑤ | `04-cases.md` 的 `gate_3` | 人机分工切割；**子 agent 自检过 + 无范围争议 → 编排器 auto-confirm（仅主对话模式；无人值守模式须真人确认）** | 非 `confirmed` |
 
 ## 确认闸门（机械流程，但非每步都 ping 用户）
 
 > 注：闸门 1（gate_1）是**冲突裁决门而非确认门**——需求文档无需用户审核，仅当 01 识别到待裁决冲突时才需用户裁决，无冲突自动放行，不要求 `confirmed`。
-> **auto-confirm 规则（与用户既定偏好一致：只在真正的范围裁决点才问用户）**：gate_2 / gate_3 在「子 agent 自检已通过」且「无未决范围争议 / CRUD 缺口待定夺」时，**编排器可直接回写 `gate_N: confirmed` 并继续，不弹 AskUserQuestion**。仅当存在范围争议、CRUD 缺口、或子 agent 自检未过时，才用 AskUserQuestion 请用户裁决。这避免了每个步骤都无意义地打断用户。
+> **auto-confirm 规则（与用户既定偏好一致：只在真正的范围裁决点才问用户）**：gate_2 / gate_3 在「子 agent 自检已通过」且「无未决范围争议 / CRUD 缺口待定夺」时，**编排器可直接回写 `gate_N: confirmed` 并继续，不弹 AskUserQuestion**。**但 auto-confirm 仅在「主对话模式」（真人在场、或真人显式授权无人值守）下可用；在自动调度（无人值守）模式下一律关闭 auto-confirm，所有 gate_2 / gate_3 必须真人 AskUserQuestion 确认。** 仅当存在范围争议、CRUD 缺口、或子 agent 自检未过时，才用 AskUserQuestion 请用户裁决。这避免了每个步骤都无意义地打断用户，但绝不在无人值守时擅自放行。
 
 每步产物写完后，按以下判定执行——**产物 frontmatter 的 `gate_N` 从 `pending` 改为 `confirmed` 是唯一放行凭证**：
 
 1. 用 `present_files` 展示该步骤的产物文件
 2. 给出子 agent 简报中的要点（如果子 agent 返回了简报）
-3. 若需用户裁决：用 `AskUserQuestion` 询问：「确认通过，进入下一步」/「需要修改」；若满足 auto-confirm（自检过 + 无范围争议），跳过此步直接回写 `confirmed`
+3. 若需用户裁决：用 `AskUserQuestion` 询问：「确认通过，进入下一步」/「需要修改」；若满足 auto-confirm（自检过 + 无范围争议）**且处于主对话模式**，跳过此步直接回写 `confirmed`；**无人值守模式下即使满足 auto-confirm 也必须 AskUserQuestion 真人确认，不得自签放行**
 4. 如果用户选"需要修改"→ 收集修改意见 → 按返工模板重新派发同一步骤的子 agent → 再次确认
 5. **用户确认前，`gate_N` 保持 `pending`，绝不进入下一步**——下游脚本会被机械拦截（exit 1），不是靠你自觉
 6. 用户确认后：**回写产物 frontmatter 为 `gate_N: confirmed`**，再进入下一步
